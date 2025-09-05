@@ -1,6 +1,7 @@
 from datetime import datetime
 
 
-def time_command():
+def get_current_time():
+    """Get current time as formatted string"""
     timestamp = datetime.now()
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")

@@ -1,7 +1,7 @@
 from loguru import logger
 import click
-from app.commands.time import time_command
-from rich.console import Console
+from app.commands.time import get_current_time
+from app.utils.display import display_datetime
 
 
 @click.group()
@@ -13,15 +13,8 @@ def cli():
 @cli.command()
 def time():
     """Show current time"""
-    result = time_command()
-    datetime = result.split(" ")[0]
-    time = result.split(" ")[1]
-    Console().print(
-        f"[dark_blue]Date:[/dark_blue] [bold blue]{datetime}[/bold blue]"
-    )
-    Console().print(
-        f"[dark_blue]Time:[/dark_blue] [bold blue]{time}[/bold blue]"
-    )
+    result = get_current_time()
+    display_datetime(result)
 
 
 def main():
