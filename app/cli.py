@@ -1,6 +1,7 @@
 from loguru import logger
 import click
 from app.commands.time import get_current_time
+from app.models.pomodoro import PomodoroTimer
 from app.utils.display import display_datetime
 
 
@@ -10,11 +11,25 @@ def cli():
     pass
 
 
-@cli.command()
+@cli.group()
 def time():
+    """Time-related commands"""
+    pass
+ 
+
+@time.command()
+def now():
     """Show current time"""
     result = get_current_time()
     display_datetime(result)
+
+
+@time.command()
+def pomo():
+    """Start pomodoro timer console"""
+    logger.info("Starting pomodoro timer console...")
+    timer = PomodoroTimer()
+    timer.show_main_menu()
 
 
 def main():
