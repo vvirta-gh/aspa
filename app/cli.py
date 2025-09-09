@@ -12,19 +12,19 @@ def cli():
 
 
 @cli.group()
-def time():
+def timer():
     """Time-related commands"""
     pass
  
 
-@time.command()
+@timer.command()
 def now():
     """Show current time"""
     result = get_current_time()
     display_datetime(result)
 
 
-@time.command()
+@timer.command()
 def pomo():
     """Start pomodoro timer console"""
     logger.info("Starting pomodoro timer console...")

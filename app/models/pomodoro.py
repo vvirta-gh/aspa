@@ -1,6 +1,7 @@
 import time
 import signal
 import sys
+import platform
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
@@ -65,6 +66,7 @@ class PomodoroTimer:
     def start_session(self):
         """Start a new session"""
         self.console.print(f"\n[green]🍅 Starting {self.settings['work_duration']}min work session...[/green]")
+        self.console.print("[dim]Press Enter during work to take a break, Ctrl+C to cancel[/dim]")
 
         if self.run_timer(self.settings['work_duration'], "Work"):
             self.stats['pomodoros_today'] += 1
@@ -76,18 +78,29 @@ class PomodoroTimer:
                 break_duration = self.settings['long_break'] if self.stats['pomodoros_today'] % self.settings['long_break_interval'] == 0 else self.settings['short_break']
                 break_type = "Long" if break_duration == self.settings['long_break'] else "Short"
 
-                self.console.print(f"\n[green]🍅 Taking {break_duration}min {break_type} break...[/green]")
+                self.console.print(f"\n[green]☕ Taking {break_duration}min {break_type} break...[/green]")
                 self.run_timer(break_duration, f"{break_type} Break")
     
     def run_timer(self, minutes, session_type):
-        """Run timer for given duration"""
+        """Run timer for given duration with non-blocking input support"""
         self.running = True
         seconds = minutes * 60
 
         try:
             while seconds > 0 and self.running:
                 mins, secs = divmod(seconds, 60)
-                self.console.print(f"\r[session_type]: {mins:02d}:{secs:02d}", end="", style="bold")
+                # Show dynamic session label instead of literal "[session_type]"
+                self.console.print(f"\r{session_type}: {mins:02d}:{secs:02d}", end="", style="bold")
+                
+                # Check for non-blocking input (cross-platform)
+                if self.is_input_available():
+                    input_data = self.get_input()
+                    if input_data == '\r' or input_data == '\n':  # Enter key pressed
+                        if session_type == "Work" and Confirm.ask("\nTake a break now?"):
+                            return self._start_break()
+                        else:
+                            self.console.print(f"\n[yellow]Continuing {session_type.lower()}...[/yellow]")
+                
                 time.sleep(1)
                 seconds -= 1
                 
@@ -101,6 +114,52 @@ class PomodoroTimer:
             self.running = False
             self.console.print(f"\n[yellow]⏸️  {session_type} cancelled[/yellow]")
             return False
+    
+    def _start_break(self):
+        """Start a break session"""
+        break_duration = self.settings['long_break'] if self.stats['pomodoros_today'] % self.settings['long_break_interval'] == 0 else self.settings['short_break']
+        break_type = "Long" if break_duration == self.settings['long_break'] else "Short"
+        
+        self.console.print(f"\n[green]☕ Starting {break_duration}min {break_type} break...[/green]")
+        return self.run_timer(break_duration, f"{break_type} Break")
+
+    def is_input_available(self):
+        """Check if input is available (cross-platform)"""
+        os_name = platform.system()  # "Windows", "Darwin" (MacOS), "Linux"
+        if os_name == "Windows":
+            return self._is_input_available_windows()
+        elif os_name == "Linux":
+            return self._is_input_available_unix()
+        elif os_name == "Darwin":
+            return self._is_input_available_unix()  # MacOS uses Unix-like input availability check
+        else:
+            self.console.print(f"[red]❌ Unsupported operating system: {os_name}[/red]")
+            return False
+
+    def _is_input_available_windows(self):
+        """Check if input is available on Windows"""
+        import msvcrt
+        return msvcrt.kbhit()  # Returns True if a key has been pressed since last check (kbhit = keyboard hit)
+
+    def _is_input_available_unix(self):
+        """Check if input is available on Unix/Linux/MacOS"""
+        import select
+        # select.select() is a function that waits for input to be available
+        # 1. [sys.stdin] listen to the standard input stream (keyboard)
+        # 2. [] does not listen to the standard output stream (screen)
+        # 3. [] does not listen to the standard error stream (console)
+        # 4. 0 is the timeout in seconds (0 = non-blocking)
+        # 5. [0] returns the list of streams that are ready to be read
+        return sys.stdin in select.select([sys.stdin], [], [], 0)[0]  # Returns True if input is available, False otherwise
+
+    def get_input(self):
+        """Get input when available (cross-platform)"""
+        os_name = platform.system()
+        if os_name == "Windows":
+            import msvcrt
+            return msvcrt.getch().decode('utf-8')  # Read single character and decode from bytes
+        else:
+            return sys.stdin.readline().strip()  # Read line and strip whitespace
 
     def configure_settings(self):
         """Configure pomodoro settings"""
