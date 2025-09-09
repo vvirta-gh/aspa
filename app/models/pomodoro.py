@@ -26,6 +26,7 @@ class PomodoroTimer:
             'total_worktime': 0,    
         }
         self.running = False
+        self.pause_state = None
     
 
     def show_main_menu(self):
@@ -81,23 +82,31 @@ class PomodoroTimer:
                 self.console.print(f"\n[green]☕ Taking {break_duration}min {break_type} break...[/green]")
                 self.run_timer(break_duration, f"{break_type} Break")
     
-    def run_timer(self, minutes, session_type):
+    def run_timer(self, minutes, session_type, resume_seconds=None):
         """Run timer for given duration with non-blocking input support"""
         self.running = True
-        seconds = minutes * 60
+        
+        # Jos resume_seconds on annettu, käytä sitä, muuten aloita alusta
+        if resume_seconds is not None:
+            seconds = resume_seconds
+        else:
+            seconds = minutes * 60
 
         try:
             while seconds > 0 and self.running:
                 mins, secs = divmod(seconds, 60)
                 # Show dynamic session label instead of literal "[session_type]"
-                self.console.print(f"\r{session_type}: {mins:02d}:{secs:02d}", end="", style="bold")
+                self.console.print(
+                    f"\t{mins:02d}:{secs:02d}", 
+                    end="", 
+                    style="bold")
                 
                 # Check for non-blocking input (cross-platform)
                 if self.is_input_available():
                     input_data = self.get_input()
                     if input_data == '\r' or input_data == '\n':  # Enter key pressed
-                        if session_type == "Work" and Confirm.ask("\nTake a break now?"):
-                            return self._start_break()
+                        if session_type == "Work" and Confirm.ask("\nTake a pause?"):
+                            return self._start_pause_break(minutes, seconds, session_type)
                         else:
                             self.console.print(f"\n[yellow]Continuing {session_type.lower()}...[/yellow]")
                 
@@ -122,6 +131,38 @@ class PomodoroTimer:
         
         self.console.print(f"\n[green]☕ Starting {break_duration}min {break_type} break...[/green]")
         return self.run_timer(break_duration, f"{break_type} Break")
+
+
+    def _start_pause_break(self, minutes, seconds, session_type):
+        """Start a pause break"""
+        # 1. Tallennetaan tilanne ennen taukoa
+        self.pause_state = {
+            'minutes': minutes,           # Alkuperäinen kesto
+            'seconds': seconds,           # Jäljellä olevat sekunnit
+            'session_type': session_type, # "Work", "Short Break" tai "Long Break"
+        }
+        
+        # 2. Näytetään taukoilmoitus
+        mins, secs = divmod(seconds, 60)
+        self.console.print(f"\n[yellow]⏸️  {session_type} paused[/yellow]")
+        self.console.print(f"Time left: {mins:02d}:{secs:02d}")
+        
+        # 3. Odota Enteria palatakseen
+        self.console.print("[dim]Press Enter to resume...[/dim]")
+        
+        # 4. Odota Enter-painallusta
+        while True:
+            if self.is_input_available():
+                input_data = self.get_input()
+                if input_data == '\r' or input_data == '\n':  # Enter pressed
+                    self.console.print(f"\n[green]▶️  Resuming {session_type}...[/green]")
+                    break
+            time.sleep(0.1)
+        
+        # 5. Palauta timer samaan kohtaan
+        return self.run_timer(minutes, session_type, resume_seconds=seconds)
+
+
 
     def is_input_available(self):
         """Check if input is available (cross-platform)"""
@@ -152,6 +193,7 @@ class PomodoroTimer:
         # 5. [0] returns the list of streams that are ready to be read
         return sys.stdin in select.select([sys.stdin], [], [], 0)[0]  # Returns True if input is available, False otherwise
 
+
     def get_input(self):
         """Get input when available (cross-platform)"""
         os_name = platform.system()
@@ -159,7 +201,11 @@ class PomodoroTimer:
             import msvcrt
             return msvcrt.getch().decode('utf-8')  # Read single character and decode from bytes
         else:
-            return sys.stdin.readline().strip()  # Read line and strip whitespace
+            # For Unix/Linux, read the line but don't strip the newline
+            # so we can detect Enter key press
+            return sys.stdin.readline()  # Don't strip - keep the \n character
+
+
 
     def configure_settings(self):
         """Configure pomodoro settings"""
