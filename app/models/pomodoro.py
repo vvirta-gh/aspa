@@ -1,13 +1,11 @@
 import time
-import signal
 import sys
 import platform
-from datetime import datetime, timedelta
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.panel import Panel
-from loguru import logger
+ 
 
 
 class PomodoroTimer:

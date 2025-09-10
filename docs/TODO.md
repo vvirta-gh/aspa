@@ -7,3 +7,8 @@
 - [ ] Lisää kattavat testit PomodoroTimerille (ajan mockaus)
 - [ ] Lisää `--no-color` tai automaattinen värien poiskytkentä pipelinettaessa
 - [ ] Paketointiin ohjeet (PyPI / binaarit?)
+
+Ideat
+-----
+- Luo erilaisia visuaalisia näyttötyylejä, jotka ovat sekä humoristisia että oivaltavia.
+- Tutki mitattavia metriikoita ja visualisointeja paremman käyttökokemuksen tarjoamiseksi.
