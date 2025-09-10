@@ -82,6 +82,7 @@ class PomodoroTimer:
                 self.console.print(f"\n[green]☕ Taking {break_duration}min {break_type} break...[/green]")
                 self.run_timer(break_duration, f"{break_type} Break")
     
+    
     def run_timer(self, minutes, session_type, resume_seconds=None):
         """Run timer for given duration with non-blocking input support"""
         self.running = True
