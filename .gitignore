@@ -8,3 +8,17 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Taskfile
+.task/
+
+# Pytest
+.pytest_cache/
+
+# Pytest coverage
+.coverage
+
+# Pytest coverage html
+.coverage.html
+
+# Pytest coverage xml
